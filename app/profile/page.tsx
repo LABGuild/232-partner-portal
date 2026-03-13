@@ -28,7 +28,7 @@ export default function ProfilePage() {
   const [role, setRole] = useState<PlatformRole>('user')
 
   // Reference data
-  const [orgs, setOrgs] = useState<Organization[]>([])
+  const [orgs, setOrgs] = useState<Pick<Organization, 'id' | 'name' | 'type'>[]>([])
   const [expertiseTags, setExpertiseTags] = useState<ExpertiseTag[]>([])
   const [watersheds, setWatersheds] = useState<Watershed[]>([])
 
