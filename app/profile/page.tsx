@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Nav from '@/components/Nav'
@@ -12,7 +12,7 @@ const ENGAGEMENT_LEVELS: EngagementLevel[] = [
   'Subscriber',
 ]
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isSetup = searchParams.get('setup') === 'true'
@@ -369,5 +369,17 @@ export default function ProfilePage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-400 font-heading">Loading…</div>
+      </div>
+    }>
+      <ProfilePageContent />
+    </Suspense>
   )
 }
