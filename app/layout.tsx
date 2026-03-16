@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '232 Partnership — Partner Portal',
+  title: '2-3-2 Partnership Database',
   description: 'Connecting forest and watershed restoration partners across the 2-3-2 landscape.',
   manifest: '/manifest.json',
   appleWebApp: {

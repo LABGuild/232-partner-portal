@@ -35,19 +35,13 @@ export default function LoginPage() {
     <div className="min-h-screen bg-brand-blue flex flex-col items-center justify-center px-4">
       {/* Logo area */}
       <div className="mb-8 text-center">
-        <div className="inline-flex items-center gap-3 mb-2">
-          <div className="w-12 h-1 bg-brand-yellow" />
-          <span className="text-brand-yellow font-heading font-bold text-xl tracking-widest uppercase">
-            2-3-2
-          </span>
-          <div className="w-12 h-1 bg-brand-yellow" />
+        <div className="inline-flex items-center gap-3 mb-3">
+          <div className="w-10 h-0.5 bg-brand-yellow/60" />
+          <h1 className="text-brand-yellow font-heading font-bold text-2xl tracking-wide">
+            2-3-2 Partnership Database
+          </h1>
+          <div className="w-10 h-0.5 bg-brand-yellow/60" />
         </div>
-        <h1 className="text-white font-heading font-bold text-2xl leading-tight">
-          Cohesive Strategy Partnership
-        </h1>
-        <p className="text-white/70 font-body text-sm mt-1">
-          Partner Portal
-        </p>
       </div>
 
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">

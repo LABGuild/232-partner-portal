@@ -1,6 +1,17 @@
 export type OrgType = 'NGO' | 'Agency' | 'Tribal' | 'Academic' | 'Contractor'
 export type PlatformRole = 'platform_admin' | 'org_admin' | 'user'
-export type EngagementLevel = 'Core partner' | 'Active participant' | 'Subscriber'
+
+// Engagement levels — stored as text[] in the DB so people can select multiple
+export const ENGAGEMENT_LEVELS = [
+  'Executive Committee Member',
+  'Subcommittee Chair',
+  'Subcommittee Member',
+  'Active Partner',
+  'New to the Partnership',
+  '2-3-2 OG',
+] as const
+
+export type EngagementLevel = typeof ENGAGEMENT_LEVELS[number]
 
 export interface Organization {
   id: string
@@ -24,10 +35,11 @@ export interface Person {
   phone: string | null
   title: string | null
   org_id: string | null
-  engagement_level: EngagementLevel | null
+  engagement_level: string[] | null   // text[] in DB — multi-select
   platform_role: PlatformRole
   is_live: boolean
   custom_expertise: string | null
+  custom_watershed: string | null     // write-in watershed
   created_at: string
   updated_at: string
   // joined relations

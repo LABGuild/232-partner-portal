@@ -4,13 +4,8 @@ import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Nav from '@/components/Nav'
-import type { Organization, ExpertiseTag, Watershed, EngagementLevel, PlatformRole } from '@/lib/types'
-
-const ENGAGEMENT_LEVELS: EngagementLevel[] = [
-  'Core partner',
-  'Active participant',
-  'Subscriber',
-]
+import { ENGAGEMENT_LEVELS } from '@/lib/types'
+import type { Organization, ExpertiseTag, Watershed, PlatformRole } from '@/lib/types'
 
 function ProfilePageContent() {
   const router = useRouter()
@@ -38,10 +33,13 @@ function ProfilePageContent() {
   const [phone, setPhone] = useState('')
   const [title, setTitle] = useState('')
   const [orgId, setOrgId] = useState<string>('')
-  const [engagementLevel, setEngagementLevel] = useState<EngagementLevel | ''>('')
+  const [orgSearch, setOrgSearch] = useState('')
+  const [orgDropdownOpen, setOrgDropdownOpen] = useState(false)
+  const [selectedEngagementLevels, setSelectedEngagementLevels] = useState<Set<string>>(new Set())
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
   const [selectedWatersheds, setSelectedWatersheds] = useState<Set<string>>(new Set())
   const [customExpertise, setCustomExpertise] = useState('')
+  const [customWatershed, setCustomWatershed] = useState('')
   const [isLive, setIsLive] = useState(false)
 
   const loadData = useCallback(async () => {
@@ -54,7 +52,7 @@ function ProfilePageContent() {
 
     const [orgsRes, tagsRes, watershedsRes, personRes, tagSelRes, wsSelRes] =
       await Promise.all([
-        supabase.from('organizations').select('id, name, type').eq('is_live', true).order('name'),
+        supabase.from('organizations').select('id, name, type').order('name'),
         supabase.from('expertise_tags').select('*').order('sort_order'),
         supabase.from('watersheds').select('*').order('sort_order'),
         supabase.from('people').select('*').eq('id', user.id).single(),
@@ -73,12 +71,13 @@ function ProfilePageContent() {
       setPhone(p.phone ?? '')
       setTitle(p.title ?? '')
       setOrgId(p.org_id ?? '')
-      setEngagementLevel(p.engagement_level ?? '')
+      setSelectedEngagementLevels(new Set(Array.isArray(p.engagement_level) ? p.engagement_level : []))
       setCustomExpertise(p.custom_expertise ?? '')
+      setCustomWatershed(p.custom_watershed ?? '')
       setIsLive(p.is_live ?? false)
       setRole(p.platform_role ?? 'user')
     } else {
-      // New user — pre-fill email parts
+      // New user — pre-fill name from email
       const emailName = (user.email ?? '').split('@')[0]
       const parts = emailName.split('.')
       if (parts.length >= 2) {
@@ -93,6 +92,22 @@ function ProfilePageContent() {
   }, [router])
 
   useEffect(() => { loadData() }, [loadData])
+
+  // Org autocomplete helpers
+  const selectedOrg = orgs.find(o => o.id === orgId)
+  const orgDisplayValue = orgSearch !== '' ? orgSearch : (selectedOrg ? selectedOrg.name : '')
+  const filteredOrgs = orgSearch
+    ? orgs.filter(o => o.name.toLowerCase().includes(orgSearch.toLowerCase())).slice(0, 8)
+    : []
+  const showOrgDropdown = orgDropdownOpen && orgSearch.length > 0
+
+  const toggleEngagement = (level: string) => {
+    setSelectedEngagementLevels(prev => {
+      const next = new Set(prev)
+      next.has(level) ? next.delete(level) : next.add(level)
+      return next
+    })
+  }
 
   const toggleTag = (id: string) => {
     setSelectedTags(prev => {
@@ -118,7 +133,6 @@ function ProfilePageContent() {
 
     const supabase = createClient()
 
-    // Upsert person record
     const { error: personError } = await supabase
       .from('people')
       .upsert({
@@ -129,8 +143,9 @@ function ProfilePageContent() {
         phone: phone || null,
         title: title || null,
         org_id: orgId || null,
-        engagement_level: engagementLevel || null,
+        engagement_level: Array.from(selectedEngagementLevels),
         custom_expertise: customExpertise || null,
+        custom_watershed: customWatershed || null,
         is_live: isLive,
       })
 
@@ -156,7 +171,7 @@ function ProfilePageContent() {
       )
     }
 
-    // Save write-in if provided and new
+    // Save write-in expertise if provided
     if (customExpertise) {
       await supabase.from('custom_expertise_writeins').upsert({
         person_id: userId,
@@ -178,10 +193,11 @@ function ProfilePageContent() {
     return acc
   }, {} as Record<string, ExpertiseTag[]>)
 
-  const watershedsByState = {
-    'Colorado': watersheds.filter(w => w.state === 'CO'),
-    'New Mexico': watersheds.filter(w => w.state === 'NM'),
-    'Multi-state': watersheds.filter(w => !w.state),
+  // Group watersheds — null state = entire landscape
+  const watershedsByGroup: Record<string, Watershed[]> = {
+    'Colorado Watersheds': watersheds.filter(w => w.state === 'CO'),
+    'New Mexico Watersheds': watersheds.filter(w => w.state === 'NM'),
+    'The entire 2-3-2 landscape': watersheds.filter(w => !w.state),
   }
 
   if (loading) {
@@ -203,13 +219,14 @@ function ProfilePageContent() {
           </h1>
           {isSetup && (
             <p className="text-gray-500 text-sm mt-1">
-              Welcome to the 232 Partner Portal! Fill out your profile so other partners can find you.
+              Welcome to the 2-3-2 Partnership Database! Fill out your profile so other partners can find you.
             </p>
           )}
         </div>
 
         <form onSubmit={handleSave} className="space-y-6">
-          {/* Basic info */}
+
+          {/* ── Basic info ── */}
           <div className="card p-5 space-y-4">
             <h2 className="section-heading">Your information</h2>
 
@@ -240,30 +257,83 @@ function ProfilePageContent() {
               <input className="input" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Forest Restoration Program Manager" />
             </div>
 
+            {/* Org autocomplete */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Organization</label>
-              <select className="input" value={orgId} onChange={e => setOrgId(e.target.value)}>
-                <option value="">— Select your organization —</option>
-                {orgs.map(org => (
-                  <option key={org.id} value={org.id}>{org.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Engagement with the 232 Partnership
-              </label>
-              <select className="input" value={engagementLevel} onChange={e => setEngagementLevel(e.target.value as EngagementLevel)}>
-                <option value="">— Select —</option>
-                {ENGAGEMENT_LEVELS.map(l => (
-                  <option key={l} value={l}>{l}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  className="input pr-8"
+                  value={orgDisplayValue}
+                  onChange={e => {
+                    setOrgSearch(e.target.value)
+                    setOrgId('')
+                    setOrgDropdownOpen(true)
+                  }}
+                  onFocus={() => { if (!orgId) setOrgDropdownOpen(true) }}
+                  onBlur={() => setTimeout(() => { setOrgDropdownOpen(false); setOrgSearch('') }, 150)}
+                  placeholder="Type to search organizations…"
+                  autoComplete="off"
+                />
+                {orgId && (
+                  <button
+                    type="button"
+                    onClick={() => { setOrgId(''); setOrgSearch('') }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xl leading-none"
+                    aria-label="Clear organization"
+                  >
+                    ×
+                  </button>
+                )}
+                {showOrgDropdown && filteredOrgs.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                    {filteredOrgs.map(org => (
+                      <button
+                        key={org.id}
+                        type="button"
+                        className="w-full text-left px-3 py-2.5 hover:bg-brand-blue/5 text-sm border-b border-gray-50 last:border-0"
+                        onMouseDown={() => {
+                          setOrgId(org.id)
+                          setOrgSearch('')
+                          setOrgDropdownOpen(false)
+                        }}
+                      >
+                        {org.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showOrgDropdown && orgSearch && filteredOrgs.length === 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-sm px-3 py-2.5 text-sm text-gray-400">
+                    No organizations found
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Expertise */}
+          {/* ── Engagement ── */}
+          <div className="card p-5 space-y-3">
+            <h2 className="section-heading">Your role in the 2-3-2 Partnership</h2>
+            <p className="text-sm text-gray-500 -mt-2">Select all that apply — you can pick more than one.</p>
+            <div className="flex flex-wrap gap-2">
+              {ENGAGEMENT_LEVELS.map(level => (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => toggleEngagement(level)}
+                  className={`tag cursor-pointer transition-colors ${
+                    selectedEngagementLevels.has(level)
+                      ? 'bg-brand-yellow text-gray-900 font-medium'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Expertise ── */}
           <div className="card p-5 space-y-4">
             <h2 className="section-heading">Areas of expertise</h2>
             <p className="text-sm text-gray-500 -mt-2">Select all that apply to your work.</p>
@@ -306,35 +376,54 @@ function ProfilePageContent() {
             </div>
           </div>
 
-          {/* Watersheds */}
+          {/* ── Geographic focus ── */}
           <div className="card p-5 space-y-4">
-            <h2 className="section-heading">Geographic focus</h2>
-            <p className="text-sm text-gray-500 -mt-2">Which watersheds do you work in?</p>
+            <h2 className="section-heading">Where do you work?</h2>
+            <p className="text-sm text-gray-500 -mt-2">
+              Select all the landscapes and watersheds where you do restoration work.
+            </p>
 
-            {Object.entries(watershedsByState).map(([state, ws]) => (
-              <div key={state}>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{state}</p>
-                <div className="flex flex-wrap gap-2">
-                  {ws.map(w => (
-                    <button
-                      key={w.id}
-                      type="button"
-                      onClick={() => toggleWatershed(w.id)}
-                      className={`tag cursor-pointer transition-colors ${
-                        selectedWatersheds.has(w.id)
-                          ? 'bg-brand-green text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      📍 {w.name}
-                    </button>
-                  ))}
+            {Object.entries(watershedsByGroup).map(([group, ws]) => (
+              ws.length > 0 && (
+                <div key={group}>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{group}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {ws.map(w => (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => toggleWatershed(w.id)}
+                        className={`tag cursor-pointer transition-colors ${
+                          selectedWatersheds.has(w.id)
+                            ? 'bg-brand-green text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        📍 {w.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )
             ))}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Other watershed (write in)
+              </label>
+              <input
+                className="input"
+                value={customWatershed}
+                onChange={e => setCustomWatershed(e.target.value)}
+                placeholder="e.g. Arroyo Hondo, Costilla Creek…"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                If your primary watershed isn&apos;t listed above, write it in here.
+              </p>
+            </div>
           </div>
 
-          {/* Go live */}
+          {/* ── Go live ── */}
           <div className="card p-5">
             <div className="flex items-start gap-3">
               <input
@@ -366,6 +455,7 @@ function ProfilePageContent() {
           >
             {saving ? 'Saving…' : saved ? '✓ Saved!' : isSetup ? 'Save and go to directory →' : 'Save profile'}
           </button>
+
         </form>
       </div>
     </div>
