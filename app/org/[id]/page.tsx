@@ -15,14 +15,21 @@ export default async function OrgPage({ params }: { params: { id: string } }) {
     .eq('id', user.id)
     .single()
 
-  // Fetch org
+  // Fetch org with its expertise tags and watersheds
   const { data: org } = await supabase
     .from('organizations')
-    .select('*')
+    .select(`
+      *,
+      org_expertise ( expertise_tags ( name, category ) ),
+      org_watersheds ( watersheds ( name, state ) )
+    `)
     .eq('id', params.id)
     .single()
 
   if (!org) notFound()
+
+  const orgExpertise: Array<{ expertise_tags: { name: string } | null }> = org.org_expertise ?? []
+  const orgWatersheds: Array<{ watersheds: { name: string } | null }> = org.org_watersheds ?? []
 
   // Fetch live people in this org with their expertise and watersheds
   const { data: people } = await supabase
@@ -79,9 +86,11 @@ export default async function OrgPage({ params }: { params: { id: string } }) {
                 )}
               </div>
 
-              {org.description && (
+              {org.about_us ? (
+                <p className="text-gray-600 mt-3 whitespace-pre-line">{org.about_us}</p>
+              ) : org.description ? (
                 <p className="text-gray-600 mt-3">{org.description}</p>
-              )}
+              ) : null}
 
               {org.website && (
                 <a
@@ -96,6 +105,28 @@ export default async function OrgPage({ params }: { params: { id: string } }) {
                   </svg>
                   {org.website.replace(/^https?:\/\//, '')}
                 </a>
+              )}
+
+              {/* Org expertise */}
+              {orgExpertise.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-4">
+                  {orgExpertise.map((oe, i) => oe.expertise_tags && (
+                    <span key={i} className="tag bg-brand-blue/10 text-brand-blue text-xs">
+                      {oe.expertise_tags.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Org watersheds */}
+              {orgWatersheds.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {orgWatersheds.map((ow, i) => ow.watersheds && (
+                    <span key={i} className="tag bg-brand-green/10 text-brand-green text-xs">
+                      📍 {ow.watersheds.name}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -118,19 +149,34 @@ export default async function OrgPage({ params }: { params: { id: string } }) {
             }) => (
               <div key={person.id} className="card p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    {person.photo_url ? (
+                      <img
+                        src={person.photo_url}
+                        alt={`${person.first_name} ${person.last_name}`}
+                        className="w-12 h-12 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-sm text-gray-400 font-heading flex-shrink-0">
+                        {(person.first_name[0] ?? '') + (person.last_name[0] ?? '')}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-heading font-semibold text-gray-900">
                         {person.first_name} {person.last_name}
                       </h3>
-                      {person.engagement_level && (
-                        <span className="tag bg-brand-yellow/20 text-gray-700 text-xs">
-                          {person.engagement_level}
+                      {Array.isArray(person.engagement_level) && person.engagement_level.map((lvl: string) => (
+                        <span key={lvl} className="tag bg-brand-yellow/20 text-gray-700 text-xs">
+                          {lvl}
                         </span>
-                      )}
+                      ))}
                     </div>
                     {person.title && (
                       <p className="text-gray-500 text-sm mt-0.5">{person.title}</p>
+                    )}
+                    {person.about_me && (
+                      <p className="text-gray-600 text-sm mt-1.5 whitespace-pre-line">{person.about_me}</p>
                     )}
 
                     {/* Expertise tags */}
@@ -165,24 +211,35 @@ export default async function OrgPage({ params }: { params: { id: string } }) {
                         ))}
                       </div>
                     )}
+                    </div>
                   </div>
 
-                  {/* Contact */}
-                  <div className="flex flex-col gap-1.5 text-right flex-shrink-0">
-                    {person.email && (
+                  {/* Contact — email/phone only if the partner opted in */}
+                  <div className="flex flex-col gap-1.5 text-right flex-shrink-0 items-end">
+                    {person.show_email && person.email && (
                       <a
                         href={`mailto:${person.email}`}
-                        className="text-brand-blue text-sm hover:underline"
+                        className="text-brand-blue text-sm hover:underline break-all"
                       >
                         {person.email}
                       </a>
                     )}
-                    {person.phone && (
+                    {person.show_email && person.phone && (
                       <a
                         href={`tel:${person.phone}`}
                         className="text-gray-500 text-sm hover:underline"
                       >
                         {person.phone}
+                      </a>
+                    )}
+                    {person.linkedin_url && (
+                      <a
+                        href={person.linkedin_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand-blue text-sm hover:underline"
+                      >
+                        LinkedIn ↗
                       </a>
                     )}
                   </div>

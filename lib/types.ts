@@ -21,10 +21,14 @@ export interface Organization {
   website: string | null
   logo_url: string | null
   description: string | null
+  about_us: string | null          // richer "about us" narrative
   is_live: boolean
   is_contractor: boolean
   created_at: string
   updated_at: string
+  // joined relations
+  expertise_tags?: ExpertiseTag[]
+  watersheds?: Watershed[]
 }
 
 export interface Person {
@@ -38,6 +42,10 @@ export interface Person {
   engagement_level: string[] | null   // text[] in DB — multi-select
   platform_role: PlatformRole
   is_live: boolean
+  photo_url: string | null            // profile photo (Supabase Storage)
+  about_me: string | null             // optional freeform bio
+  linkedin_url: string | null         // optional LinkedIn URL
+  show_email: boolean                 // email/phone visible to other partners
   custom_expertise: string | null
   custom_watershed: string | null     // write-in watershed
   created_at: string
@@ -122,6 +130,7 @@ export const ORG_TYPE_LABELS: Record<OrgType, string> = {
   Contractor: 'Contractor or Consulting Firm',
 }
 
+// Tag colors per org type (used on cards and profile pages)
 export const ORG_TYPE_COLORS: Record<OrgType, string> = {
   NGO:        'bg-brand-blue text-white',
   Agency:     'bg-brand-green text-white',

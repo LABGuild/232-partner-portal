@@ -41,6 +41,11 @@ function ProfilePageContent() {
   const [customExpertise, setCustomExpertise] = useState('')
   const [customWatershed, setCustomWatershed] = useState('')
   const [isLive, setIsLive] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState('')
+  const [aboutMe, setAboutMe] = useState('')
+  const [linkedinUrl, setLinkedinUrl] = useState('')
+  const [showEmail, setShowEmail] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
@@ -75,6 +80,10 @@ function ProfilePageContent() {
       setCustomExpertise(p.custom_expertise ?? '')
       setCustomWatershed(p.custom_watershed ?? '')
       setIsLive(p.is_live ?? false)
+      setPhotoUrl(p.photo_url ?? '')
+      setAboutMe(p.about_me ?? '')
+      setLinkedinUrl(p.linkedin_url ?? '')
+      setShowEmail(p.show_email ?? false)
       setRole(p.platform_role ?? 'user')
     } else {
       // New user — pre-fill name from email
@@ -125,6 +134,33 @@ function ProfilePageContent() {
     })
   }
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
+    setUploadingPhoto(true)
+    setError(null)
+
+    const supabase = createClient()
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+    const path = `${userId}/photo.${ext}`
+
+    const { error: uploadError } = await supabase
+      .storage
+      .from('photos')
+      .upload(path, file, { upsert: true, contentType: file.type })
+
+    if (uploadError) {
+      setError(uploadError.message)
+      setUploadingPhoto(false)
+      return
+    }
+
+    const { data } = supabase.storage.from('photos').getPublicUrl(path)
+    // cache-bust so the new image shows immediately after re-upload
+    setPhotoUrl(`${data.publicUrl}?t=${Date.now()}`)
+    setUploadingPhoto(false)
+  }
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!userId) return
@@ -147,6 +183,10 @@ function ProfilePageContent() {
         custom_expertise: customExpertise || null,
         custom_watershed: customWatershed || null,
         is_live: isLive,
+        photo_url: photoUrl ? photoUrl.split('?')[0] : null,
+        about_me: aboutMe || null,
+        linkedin_url: linkedinUrl || null,
+        show_email: showEmail,
       })
 
     if (personError) {
@@ -230,6 +270,34 @@ function ProfilePageContent() {
           <div className="card p-5 space-y-4">
             <h2 className="section-heading">Your information</h2>
 
+            {/* Profile photo */}
+            <div className="flex items-center gap-4">
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt="Your profile photo"
+                  className="w-20 h-20 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-2xl text-gray-300 font-heading flex-shrink-0">
+                  {(firstName[0] ?? '') + (lastName[0] ?? '') || '🙂'}
+                </div>
+              )}
+              <div>
+                <label className="btn-secondary text-sm cursor-pointer inline-block">
+                  {uploadingPhoto ? 'Uploading…' : photoUrl ? 'Change photo' : 'Upload photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingPhoto}
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
+                <p className="text-xs text-gray-400 mt-1">JPG or PNG. A square photo works best.</p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">First name *</label>
@@ -252,9 +320,33 @@ function ProfilePageContent() {
               <input className="input" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 555-5555" />
             </div>
 
+            {/* Email / phone visibility */}
+            <div className="flex items-start gap-3 rounded-lg bg-gray-50 p-3">
+              <input
+                id="show_email"
+                type="checkbox"
+                checked={showEmail}
+                onChange={e => setShowEmail(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-brand-blue"
+              />
+              <div>
+                <label htmlFor="show_email" className="text-sm font-medium text-gray-700 cursor-pointer">
+                  Show my email and phone to other partners
+                </label>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Only logged-in partners can see this — it is never shown publicly. Leave unchecked to keep your contact info private.
+                </p>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Title / Role</label>
               <input className="input" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Forest Restoration Program Manager" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn profile</label>
+              <input className="input" type="url" value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} placeholder="https://www.linkedin.com/in/yourname" />
             </div>
 
             {/* Org autocomplete */}
@@ -308,6 +400,16 @@ function ProfilePageContent() {
                   </div>
                 )}
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">About me</label>
+              <textarea
+                className="input min-h-[100px] resize-y"
+                value={aboutMe}
+                onChange={e => setAboutMe(e.target.value)}
+                placeholder="Tell other partners a bit about yourself and your work in the 2-3-2 landscape…"
+              />
             </div>
           </div>
 
