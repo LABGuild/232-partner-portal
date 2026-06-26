@@ -21,9 +21,12 @@ export default function Nav({ role }: NavProps) {
     router.push('/login')
   }
 
+  const isModerator = role === 'moderator' || role === 'platform_admin'
   const links = [
-    { href: '/directory', label: 'Directory' },
-    { href: '/profile',   label: 'My Profile' },
+    { href: '/directory',   label: 'Directory' },
+    { href: '/classifieds', label: 'Classifieds' },
+    { href: '/profile',     label: 'My Profile' },
+    ...(isModerator ? [{ href: '/admin/classifieds', label: 'Review queue' }] : []),
     ...(role === 'platform_admin' ? [{ href: '/admin', label: 'Admin' }] : []),
   ]
 

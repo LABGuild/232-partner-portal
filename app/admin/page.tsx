@@ -215,6 +215,7 @@ export default function AdminPage() {
                       >
                         <option value="user">Member</option>
                         <option value="org_admin">Org Admin</option>
+                        <option value="moderator">Moderator</option>
                         <option value="platform_admin">Platform Admin</option>
                       </select>
                     </td>
