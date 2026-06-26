@@ -9,18 +9,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // 232 Partnership brand colors
+        // 232 Partnership brand colors (updated brand deck, 2026)
         brand: {
-          blue:   '#436578',
-          yellow: '#F3C108',
-          green:  '#8A9C3A',
-          red:    '#BE1E2C',
-          orange: '#F15B25',
+          blue:   '#28657A',  // primary teal
+          yellow: '#FDC20D',
+          green:  '#829E3C',
+          red:    '#DE1E29',
+          orange: '#F15C2F',
         },
       },
       fontFamily: {
-        heading: ['Montserrat', 'sans-serif'],
-        body:    ['Athiti', 'sans-serif'],
+        heading: ['Poppins', 'sans-serif'],
+        body:    ['Figtree', 'sans-serif'],
       },
     },
   },

@@ -4,8 +4,8 @@
   "description": "Forest and watershed restoration partner network",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#436578",
-  "theme_color": "#436578",
+  "background_color": "#28657A",
+  "theme_color": "#28657A",
   "icons": [
     {
       "src": "/icon-192.png",
