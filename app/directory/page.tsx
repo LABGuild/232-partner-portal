@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Nav from '@/components/Nav'
 import OrgCard from '@/components/OrgCard'
+import PageBanner from '@/components/PageBanner'
 import type { Organization, OrgType } from '@/lib/types'
 import { ORG_TYPE_LABELS } from '@/lib/types'
 
@@ -62,14 +63,11 @@ export default async function DirectoryPage({
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Page header */}
-        <div className="mb-6">
-          <h1 className="font-heading font-bold text-2xl text-brand-blue">
-            Partner Directory
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {filtered.length} organization{filtered.length !== 1 ? 's' : ''} in the network
-          </p>
-        </div>
+        <PageBanner
+          image="/hero-meadow.jpg"
+          title="Partner Directory"
+          subtitle={`${filtered.length} organization${filtered.length !== 1 ? 's' : ''} across the 2-3-2 landscape — search by expertise, watershed, and type.`}
+        />
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -118,6 +116,7 @@ export default async function DirectoryPage({
         {/* Results */}
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
+            <img src="/logo-mark.png" alt="" className="w-14 h-14 mx-auto mb-3 opacity-25" />
             <p className="font-heading text-lg">No organizations found</p>
             <p className="text-sm mt-1">Try adjusting your search or filters</p>
           </div>

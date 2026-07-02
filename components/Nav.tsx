@@ -35,7 +35,10 @@ export default function Nav({ role }: NavProps) {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
           {/* Brand */}
-          <Link href="/directory" className="flex items-center gap-2">
+          <Link href="/directory" className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm flex-shrink-0">
+              <img src="/logo-mark.png" alt="2-3-2 Partnership logo" className="w-6 h-6 object-contain" />
+            </span>
             <span className="font-heading font-bold text-brand-yellow tracking-widest text-base">
               2-3-2
             </span>

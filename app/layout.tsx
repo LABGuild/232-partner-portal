@@ -1,10 +1,15 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import Footer from '@/components/Footer'
 
 export const metadata: Metadata = {
   title: '2-3-2 Partnership Database',
   description: 'Connecting forest and watershed restoration partners across the 2-3-2 landscape.',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/icon-64.png',
+    apple: '/icon-192.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -25,8 +30,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50 text-gray-900 min-h-screen font-body">
-        {children}
+      <body className="bg-brand-sand text-gray-900 min-h-screen font-body flex flex-col">
+        <div className="flex-1">
+          {children}
+        </div>
+        <Footer />
       </body>
     </html>
   )

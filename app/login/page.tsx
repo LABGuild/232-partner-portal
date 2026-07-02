@@ -32,15 +32,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-blue flex flex-col items-center justify-center px-4">
+    <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      {/* Landscape hero background */}
+      <img src="/hero-mesa.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-brand-blue/75" />
+
+      <div className="relative z-10 w-full flex flex-col items-center">
       {/* Logo area */}
       <div className="mb-8 text-center">
-        <div className="inline-flex items-center gap-3 mb-3">
-          <div className="w-10 h-0.5 bg-brand-yellow/60" />
-          <h1 className="text-brand-yellow font-heading font-bold text-2xl tracking-wide">
+        <div className="flex items-center justify-center gap-3">
+          <span className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg flex-shrink-0">
+            <img src="/logo-mark.png" alt="" className="w-9 h-9 object-contain" />
+          </span>
+          <h1 className="text-white font-heading font-bold text-2xl tracking-wide drop-shadow-sm">
             2-3-2 Partnership Database
           </h1>
-          <div className="w-10 h-0.5 bg-brand-yellow/60" />
         </div>
       </div>
 
@@ -112,9 +118,10 @@ export default function LoginPage() {
         )}
       </div>
 
-      <p className="text-white/40 text-xs mt-8">
+      <p className="text-white/70 text-xs mt-8">
         Two watersheds · Three rivers · Two states
       </p>
+      </div>
     </div>
   )
 }

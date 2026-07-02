@@ -67,6 +67,53 @@ export default async function ClassifiedDetailPage({ params }: { params: { id: s
     month: 'long', day: 'numeric', year: 'numeric',
   })
 
+  // ── Matches ──
+  const otherSelect = `
+    id, have_type, need_type, land_ownership, watershed_ids, project_type_writein,
+    person:people ( first_name, last_name, organizations ( name ) ),
+    project_type:project_types ( name )
+  `
+  const { data: matchRows } = await supabase
+    .from('matches')
+    .select(`
+      match_type, match_score, classified_id_a, classified_id_b,
+      a:classifieds!classified_id_a ( ${otherSelect} ),
+      b:classifieds!classified_id_b ( ${otherSelect} )
+    `)
+    .or(`classified_id_a.eq.${params.id},classified_id_b.eq.${params.id}`)
+    .order('match_score', { ascending: false })
+
+  type OtherRow = {
+    id: string; have_type: HaveNeedType; need_type: HaveNeedType; land_ownership: LandOwnership
+    watershed_ids: string[]; project_type_writein: string | null
+    person: { first_name: string; last_name: string; organizations: { name: string } | { name: string }[] | null } | { first_name: string; last_name: string; organizations: { name: string } | { name: string }[] | null }[] | null
+    project_type: { name: string } | { name: string }[] | null
+  }
+  const pickOne = <T,>(v: T | T[] | null): T | null => Array.isArray(v) ? (v[0] ?? null) : v
+
+  const matches = (matchRows ?? []).map((m: {
+    match_type: 'complementary' | 'parallel'; match_score: number | null
+    classified_id_a: string; classified_id_b: string
+    a: OtherRow | OtherRow[] | null; b: OtherRow | OtherRow[] | null
+  }) => {
+    const other = pickOne(m.classified_id_a === params.id ? m.b : m.a)
+    return { type: m.match_type, score: m.match_score, other }
+  }).filter((m): m is { type: 'complementary' | 'parallel'; score: number | null; other: OtherRow } => !!m.other)
+
+  const renderMatchSentence = (o: OtherRow) => {
+    const per = pickOne(o.person)
+    const name = per ? `${per.first_name} ${per.last_name}` : 'A partner'
+    const proj = pickOne(o.project_type)?.name ?? o.project_type_writein ?? ''
+    const wsNames = (o.watershed_ids ?? []).map(wid => watershedName[wid]).filter(Boolean)
+    return buildClassifiedSentence({
+      name, watershedNames: wsNames, haveType: o.have_type,
+      projectTypeName: proj, landOwnership: o.land_ownership, needType: o.need_type,
+    })
+  }
+
+  const complementary = matches.filter(m => m.type === 'complementary')
+  const parallel = matches.filter(m => m.type === 'parallel')
+
   return (
     <div className="min-h-screen">
       <Nav role={role} />
@@ -139,13 +186,67 @@ export default async function ClassifiedDetailPage({ params }: { params: { id: s
           )}
         </div>
 
-        {/* Matches (Phase 3) */}
-        <div className="card p-6 mt-4">
-          <h2 className="section-heading">Matches</h2>
-          <p className="text-sm text-gray-500">
-            Automatic matching — complementary partners and potential co-applicants — will appear
-            here. This is coming in the next phase of the portal.
-          </p>
+        {/* Matches */}
+        <div className="mt-6">
+          <h2 className="font-heading font-bold text-lg text-brand-blue mb-1">Matches</h2>
+
+          {matches.length === 0 ? (
+            <div className="card p-6">
+              <p className="text-sm text-gray-500">
+                {status === 'approved'
+                  ? 'No matches yet. As more partners post Classifieds, complementary partners and potential co-applicants will show up here.'
+                  : 'Matches appear once this post is approved.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {complementary.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                    Complementary — they may have what you need ({complementary.length})
+                  </p>
+                  <div className="space-y-3">
+                    {complementary.map(m => (
+                      <Link key={m.other.id} href={`/classifieds/${m.other.id}`}>
+                        <div className="card p-4 cursor-pointer">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="tag bg-brand-green/15 text-brand-green text-xs">Complementary</span>
+                            {m.score != null && (
+                              <span className="text-xs text-gray-400">{Math.round(m.score * 100)}% match</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-800 leading-relaxed">{renderMatchSentence(m.other)}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {parallel.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                    Parallel — same need elsewhere, potential co-applicants ({parallel.length})
+                  </p>
+                  <div className="space-y-3">
+                    {parallel.map(m => (
+                      <Link key={m.other.id} href={`/classifieds/${m.other.id}`}>
+                        <div className="card p-4 cursor-pointer">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="tag bg-brand-orange/15 text-brand-orange text-xs">Parallel</span>
+                            {m.score != null && (
+                              <span className="text-xs text-gray-400">{Math.round(m.score * 100)}% match</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-800 leading-relaxed">{renderMatchSentence(m.other)}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

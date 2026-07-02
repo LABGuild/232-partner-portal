@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendEmail, siteUrl } from '@/lib/email'
 
 // Sends a moderation-notification email when a Classified is submitted.
 // No-ops gracefully if email env vars aren't configured yet, so the post
@@ -11,13 +12,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, reason: 'missing id' }, { status: 400 })
     }
 
-    const apiKey = process.env.RESEND_API_KEY
     const to = process.env.MODERATION_INBOX
-    const from = process.env.EMAIL_FROM || 'noreply@forestguild.org'
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://232-partner-portal.vercel.app'
 
     // Email not configured — skip silently. The post is already in the queue.
-    if (!apiKey || !to) {
+    if (!process.env.RESEND_API_KEY || !to) {
       return NextResponse.json({ ok: true, emailed: false, reason: 'email not configured' })
     }
 
@@ -40,7 +38,7 @@ export async function POST(request: Request) {
     const projectType = Array.isArray(c.project_type) ? c.project_type[0] : c.project_type
     const posterName = person ? `${person.first_name} ${person.last_name}` : 'A partner'
     const projName = projectType?.name ?? c.project_type_writein ?? 'a project'
-    const queueUrl = `${siteUrl}/admin/classifieds`
+    const queueUrl = `${siteUrl()}/admin/classifieds`
 
     const html = `
       <p>A new Classified was submitted to the 2-3-2 Partner Portal and is awaiting review.</p>
@@ -50,26 +48,13 @@ export async function POST(request: Request) {
       <p><a href="${queueUrl}">Open the moderation queue</a> to approve or archive it.</p>
     `
 
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from,
-        to,
-        subject: `New Classified pending review — ${projName}`,
-        html,
-      }),
+    const result = await sendEmail({
+      to,
+      subject: `New Classified pending review — ${projName}`,
+      html,
     })
 
-    if (!res.ok) {
-      const text = await res.text()
-      return NextResponse.json({ ok: true, emailed: false, reason: text })
-    }
-
-    return NextResponse.json({ ok: true, emailed: true })
+    return NextResponse.json({ ok: true, emailed: result.sent, reason: result.reason })
   } catch (err) {
     // Never block the submit flow on email problems.
     return NextResponse.json({ ok: true, emailed: false, reason: String(err) })

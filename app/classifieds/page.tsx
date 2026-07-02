@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Nav from '@/components/Nav'
+import PageBanner from '@/components/PageBanner'
 import { buildClassifiedSentence } from '@/lib/types'
 import type { HaveNeedType, LandOwnership } from '@/lib/types'
 
@@ -67,15 +68,19 @@ export default async function ClassifiedsPage({
 
       <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-6">
-          <div>
-            <h1 className="font-heading font-bold text-2xl text-brand-blue">Classifieds</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              {list.length} open post{list.length !== 1 ? 's' : ''} — partners looking to connect on projects.
-            </p>
-          </div>
-          <Link href="/classifieds/new" className="btn-primary flex-shrink-0">Post a Classified</Link>
-        </div>
+        <PageBanner
+          image="/hero-map.jpg"
+          title="Classifieds"
+          subtitle={`${list.length} open post${list.length !== 1 ? 's' : ''} — partners looking to connect on projects.`}
+          action={
+            <Link
+              href="/classifieds/new"
+              className="bg-white text-brand-blue font-heading font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors whitespace-nowrap"
+            >
+              Post a Classified
+            </Link>
+          }
+        />
 
         {searchParams.submitted === '1' && (
           <div className="card p-4 mb-6 bg-brand-green/10 border-brand-green/30">
@@ -133,6 +138,7 @@ export default async function ClassifiedsPage({
         {/* Results */}
         {list.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
+            <img src="/logo-mark.png" alt="" className="w-14 h-14 mx-auto mb-3 opacity-25" />
             <p className="font-heading text-lg">No Classifieds yet</p>
             <p className="text-sm mt-1">Be the first to post one.</p>
           </div>

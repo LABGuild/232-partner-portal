@@ -16,6 +16,8 @@ const config: Config = {
           green:  '#829E3C',
           red:    '#DE1E29',
           orange: '#F15C2F',
+          sand:   '#F6F1E7',  // warm off-white page background
+          bark:   '#1F4E5F',  // deep teal for footer shading
         },
       },
       fontFamily: {

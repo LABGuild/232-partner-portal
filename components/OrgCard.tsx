@@ -7,10 +7,23 @@ interface OrgCardProps {
   peopleCount?: number
 }
 
+const ACCENT: Record<string, string> = {
+  NGO: '#28657A',
+  Agency: '#829E3C',
+  Tribal: '#DE1E29',
+  Academic: '#FDC20D',
+  Contractor: '#9CA3AF',
+}
+
 export default function OrgCard({ org, peopleCount }: OrgCardProps) {
   return (
     <Link href={`/org/${org.id}`}>
-      <div className="card p-5 h-full flex flex-col gap-3 cursor-pointer">
+      <div className="card p-5 h-full flex flex-col gap-3 cursor-pointer overflow-hidden">
+        {/* Color accent by org type */}
+        <div
+          className="-mx-5 -mt-5 mb-1 h-1.5"
+          style={{ backgroundColor: ACCENT[org.type] ?? '#28657A' }}
+        />
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-heading font-semibold text-gray-900 text-base leading-snug flex-1">

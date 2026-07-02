@@ -105,6 +105,17 @@ export interface Classified {
   project_type?: ProjectType | null
 }
 
+export type MatchType = 'complementary' | 'parallel'
+
+export interface Match {
+  id: string
+  classified_id_a: string
+  classified_id_b: string
+  match_type: MatchType
+  match_score: number | null
+  created_at: string
+}
+
 // Have/need option list (used in forms + sentence)
 export const HAVE_NEED_TYPES: { value: HaveNeedType; label: string }[] = [
   { value: 'funding',   label: 'funding' },

@@ -75,6 +75,20 @@ export default function ModerationQueuePage() {
     const supabase = createClient()
     const { error } = await supabase.from('classifieds').update({ moderation_status: status }).eq('id', id)
     if (error) { alert(error.message); setWorking(null); return }
+
+    // Approving a post runs the matching algorithm (non-blocking)
+    if (status === 'approved') {
+      try {
+        await fetch('/api/classifieds/match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ classifiedId: id }),
+        })
+      } catch {
+        // Matching can be re-run later; don't block the approval UI.
+      }
+    }
+
     setPending(prev => prev.filter(r => r.id !== id))
     setStale(prev => prev.filter(r => r.id !== id))
     setWorking(null)
